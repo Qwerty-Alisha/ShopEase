@@ -39,6 +39,24 @@ server.post(
   express.raw({ type: 'application/json' }),
   (request, response) => {
     // ... (Your existing webhook logic is fine)
+     const sig = request.headers['stripe-signature'];
+    let event;
+     try {
+        event = stripe.webhooks.constructEvent(request.body, sig, endpointSecret);
+    } catch (err) {
+        response.status(400).send(`Webhook Error: ${err.message}`);
+        return;
+    }
+
+    switch (event.type) {
+        case 'payment_intent.succeeded':
+            const paymentIntentSucceeded = event.data.object;
+            console.log("Payment Succeeded:", paymentIntentSucceeded.id);
+            break;
+        default:
+            console.log(`Unhandled event type ${event.type}`);
+    }
+    response.send();
   },
 );
 
